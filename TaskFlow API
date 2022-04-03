@@ -1,0 +1,32 @@
+import os
+import pandas as pd
+import datetime as dt
+from airflow.decorators import dag, task
+
+
+@dag(default_args={'owner': 'geekbrains'}, dag_id='titanic_taskflow', schedule_interval=None,  start_date=dt.datetime(2022, 1, 29))
+def titanic_taskflow_api_etl():
+
+   def get_path(file_name):
+       return os.path.join(os.path.expanduser('~'), file_name)
+
+   @task
+   def create_titanic_dataset():
+       url = 'https://web.stanford.edu/class/archive/cs/cs109/cs109.1166/stuff/titanic.csv'
+       df = pd.read_csv(url)
+       df.to_csv(get_path('titanic.csv'), encoding='utf-8')
+
+   @task
+   def pivot_titanic_dataset():
+       titanic_df = pd.read_csv(get_path('titanic.csv'))
+       df = titanic_df.pivot_table(index=['Sex'],
+                                   columns=['Pclass'],
+                                   values='Name',
+                                   aggfunc='count').reset_index()
+       df.to_csv(get_path('titanic_pivot.csv'), encoding='utf-8')
+
+   one = create_titanic_dataset()
+   two = pivot_titanic_dataset(one)
+
+
+my_dag = titanic_taskflow_api_etl()
